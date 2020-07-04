@@ -39,7 +39,6 @@ function App() {
       .then((room) => {
         setRoom(room);
         room.onStateChange((state: any) => {
-          console.log('1');
           setLastGrid(convertTo2dArray(state.board));
           setGridToShow(convertTo2dArray(state.board));
           setLastGeneration(state.generation);
@@ -49,7 +48,6 @@ function App() {
           setSecondsLeft(new Date(timer * 1000).toISOString().substr(14, 5));
         });
         room.onMessage('receive_all', ({ allGens, state }) => {
-          console.log('2');
           setAllGens(allGens);
           setLastGrid(convertTo2dArray(state.board));
           setGridToShow(convertTo2dArray(state.board));

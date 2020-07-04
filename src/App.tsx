@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-globals */
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -5,8 +6,8 @@ import { Client, Room } from 'colyseus.js';
 import Grid from './grid';
 import { FaPlay, FaPause } from 'react-icons/fa';
 
-export const numRows = 5;
-export const numCols = 5;
+export const numRows = 19;
+export const numCols = 19;
 
 export function convertTo2dArray(arr: number[]) {
   const copy = [...arr];
@@ -14,6 +15,8 @@ export function convertTo2dArray(arr: number[]) {
   while (copy.length) newArr.push(copy.splice(0, numCols));
   return newArr;
 }
+
+let sliderGenRef = 0
 
 function App() {
   const [secondsLeft, setSecondsLeft] = useState<string>('');
@@ -29,8 +32,8 @@ function App() {
   const [allGens, setAllGens] = useState<{ board: number[]; generation: number }[]>([]);
 
   useEffect(() => {
+    //const client = new Client('ws://167.172.126.142');
     const client = new Client('ws://localhost:2567');
-
     client
       .joinOrCreate('life_room')
       .then((room) => {
@@ -70,6 +73,26 @@ function App() {
   const run = () => {
     setRunning(!running);
   };
+
+  useEffect(() => {
+    sliderGenRef = displayGeneration;
+    const interval = setInterval(() => {
+      if (sliderGenRef !== lastGeneration) {
+        setDisplayGeneration((counter) => counter + 1);
+        sliderGenRef += 1;
+      } else {
+        clearInterval(interval);
+        setRunning(false);
+      }
+    }, 30);
+    if (!running) {
+      clearInterval(interval);
+    }
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [running]);
 
   const onSend = useCallback(
     ({ i, k }) => {

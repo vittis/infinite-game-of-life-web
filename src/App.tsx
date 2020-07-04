@@ -10,75 +10,48 @@ export const numCols = 5;
 
 export function convertTo2dArray(arr: number[]) {
   const copy = [...arr];
-  const newArr = [];
+  const newArr: number[][] = [];
   while (copy.length) newArr.push(copy.splice(0, numCols));
   return newArr;
 }
 
-let sliderGenRef = 0;
-
 function App() {
-  const [grid, setGrid] = useState<number[][]>();
-  const [generation, setGeneration] = useState<number>(0);
   const [secondsLeft, setSecondsLeft] = useState<string>('');
   const [room, setRoom] = useState<Room | undefined>();
-  const [sliderGen, setSliderGen] = useState<number>(0);
-  const [allGens, setAllGens] = useState<any>();
-  const [currentState, setCurrentState] = useState<any>();
+
+  const [gridToShow, setGridToShow] = useState<number[][]>();
+  const [displayGeneration, setDisplayGeneration] = useState(0);
+
+  const [lastGrid, setLastGrid] = useState<number[][]>();
+  const [lastGeneration, setLastGeneration] = useState(0);
   const [running, setRunning] = useState(false);
 
-  useEffect(() => {
-    sliderGenRef = sliderGen;
-    const interval = setInterval(() => {
-      if (sliderGenRef !== generation) {
-        setSliderGen((counter) => counter + 1);
-        sliderGenRef += 1;
-      } else {
-        clearInterval(interval);
-        setRunning(false);
-      }
-    }, 25);
-    if (!running) {
-      clearInterval(interval);
-    }
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [running]);
+  const [allGens, setAllGens] = useState<{ board: number[]; generation: number }[]>([]);
 
   useEffect(() => {
-    setSliderGen(generation);
-  }, []);
+    const client = new Client('ws://localhost:2567');
 
-  useEffect(() => {
-    setSliderGen(generation);
-    if (running) setRunning(false);
-  }, [generation]);
-
-  useEffect(() => {
-    if (allGens) {
-      setAllGens([...allGens, currentState]);
-    }
-  }, [currentState, generation]); 
-
-  useEffect(() => {
-    const client = new Client('ws://aqueous-ravine-97393.herokuapp.com');
- 
     client
       .joinOrCreate('life_room')
       .then((room) => {
         setRoom(room);
         room.onStateChange((state: any) => {
-          setCurrentState(state);
-          setGrid(convertTo2dArray(state.board));
-          setGeneration(state.generation);
+          console.log('1');
+          setLastGrid(convertTo2dArray(state.board));
+          setGridToShow(convertTo2dArray(state.board));
+          setLastGeneration(state.generation);
+          setDisplayGeneration(state.generation);
         });
         room.onMessage('tick', (timer) => {
           setSecondsLeft(new Date(timer * 1000).toISOString().substr(14, 5));
         });
-        room.onMessage('receive_all', (allGens) => {
+        room.onMessage('receive_all', ({ allGens, state }) => {
+          console.log('2');
           setAllGens(allGens);
+          setLastGrid(convertTo2dArray(state.board));
+          setGridToShow(convertTo2dArray(state.board));
+          setDisplayGeneration(state.generation);
+          setLastGeneration(state.generation);
         });
       })
       .catch((e) => {
@@ -86,24 +59,31 @@ function App() {
       });
   }, []);
 
+  useEffect(() => {
+    if (allGens && displayGeneration !== lastGeneration && allGens[displayGeneration - 1]) {
+      setGridToShow(convertTo2dArray(allGens[displayGeneration - 1].board));
+    } else if (displayGeneration === lastGeneration) {
+      setGridToShow(lastGrid);
+    }
+  }, [displayGeneration, lastGeneration]);
+
   const run = () => {
     setRunning(!running);
   };
 
   const onSend = useCallback(
     ({ i, k }) => {
-      if (generation === sliderGen) {
-        console.log('click')
+      if (displayGeneration === lastGeneration) {
+        console.log('click');
         room?.send('click', { i, k });
       }
     },
-    [room],
+    [room, displayGeneration, lastGeneration]
   );
 
-  if (!grid) {
+  if (!gridToShow) {
     return <div>loading</div>;
   }
-
   return (
     <div className="my-5 flex flex-col w-full items-center">
       <div className="flex items-center">
@@ -115,11 +95,11 @@ function App() {
             <input
               className="rounded-lg overflow-hidden appearance-none bg-gray-400 h-3 w-full"
               type="range"
-              min="1"
-              max={generation}
+              min="0"
+              max={lastGeneration}
               step="1"
-              value={sliderGen}
-              onChange={(e) => setSliderGen(Number.parseInt(e.target.value))}
+              value={displayGeneration}
+              onChange={(e) => setDisplayGeneration(Number.parseInt(e.target.value))}
             />
             <button
               onClick={run}
@@ -134,11 +114,10 @@ function App() {
         </div>
       </div>
       <div className="mb-3">
-        Viewing generation: <b>{sliderGen}</b>
+        Viewing generation: <b>{displayGeneration}</b>
       </div>
-      {allGens && allGens[sliderGen - 1] && (
-        <Grid grid={convertTo2dArray(allGens[sliderGen - 1].board)} setGrid={setGrid} onSend={onSend} />
-      )}
+      {gridToShow && <Grid grid={gridToShow} onSend={onSend} />}
+
     </div>
   );
 }

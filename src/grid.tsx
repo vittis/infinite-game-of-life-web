@@ -1,7 +1,7 @@
 import React from 'react';
 import { numCols } from './App';
 
-const Grid = ({ grid, onSend }: { grid: number[][]; setGrid: any; onSend: any }) => {
+const Grid = ({ grid, onSend }: { grid: number[][]; onSend: any }) => {
   return (
     <div
       style={{
@@ -29,4 +29,4 @@ const Grid = ({ grid, onSend }: { grid: number[][]; setGrid: any; onSend: any })
   );
 };
 
-export default React.memo(Grid);
+export default Grid;

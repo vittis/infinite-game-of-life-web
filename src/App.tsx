@@ -32,8 +32,8 @@ function App() {
   const [allGens, setAllGens] = useState<{ board: number[]; generation: number }[]>([]);
 
   useEffect(() => {
-    //const client = new Client('ws://167.172.126.142');
-    const client = new Client('ws://localhost:2567');
+    const client = new Client('ws://167.172.126.142');
+
     client
       .joinOrCreate('life_room')
       .then((room) => {
@@ -43,6 +43,7 @@ function App() {
           setGridToShow(convertTo2dArray(state.board));
           setLastGeneration(state.generation);
           setDisplayGeneration(state.generation);
+          setRunning(false);
         });
         room.onMessage('tick', (timer) => {
           setSecondsLeft(new Date(timer * 1000).toISOString().substr(14, 5));
@@ -53,6 +54,7 @@ function App() {
           setGridToShow(convertTo2dArray(state.board));
           setDisplayGeneration(state.generation);
           setLastGeneration(state.generation);
+          setRunning(false);
         });
       })
       .catch((e) => {
@@ -95,7 +97,6 @@ function App() {
   const onSend = useCallback(
     ({ i, k }) => {
       if (displayGeneration === lastGeneration) {
-        console.log('click');
         room?.send('click', { i, k });
       }
     },
